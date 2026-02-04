@@ -40,11 +40,12 @@ bun run dev
 
 ## Medusa integration
 
-This storefront talks to the Medusa Store API. Configure the base URL with
-environment variables before starting Nuxt:
+This storefront talks to the Medusa Store API. Configure the API URL with
+environment variables before starting Nuxt (or update the included `.env`):
 
 ```bash
 # Required
+export NUXT_PUBLIC_MEDUSA_API_URL="http://localhost:9000"
 export NUXT_PUBLIC_MEDUSA_BASE_URL="http://localhost:9000"
 
 # Optional (only needed for publishable-key protected stores)

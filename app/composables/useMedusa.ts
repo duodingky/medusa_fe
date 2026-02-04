@@ -5,12 +5,12 @@ type MedusaResponse<T> = Promise<T>
 export const useMedusa = () => {
   const config = useRuntimeConfig()
   const baseUrl = config.public.medusaBaseUrl.replace(/\/$/, '')
-  const publishableKey = config.public.medusaPublishableKey
+  const publishableKey = config.public.medusaPublishableKey || ''
 
   const request = <T>(path: string, options: FetchOptions = {}): MedusaResponse<T> => {
     const headers = {
-      ...(options.headers || {}),
-      ...(publishableKey ? { 'x-publishable-api-key': publishableKey } : {})
+      'x-publishable-api-key': publishableKey,
+      ...(options.headers || {})
     }
 
     return $fetch<T>(`${baseUrl}${path}`, {
