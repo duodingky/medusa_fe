@@ -17,7 +17,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatPrice, resolveVariantPrice } from '~/utils/pricing'
+import { formatPrice, resolveVariantPrice, getFinalPrice } from '~/utils/pricing'
 
 const props = defineProps<{
   product: any
@@ -29,7 +29,7 @@ const variant = computed(() => props.product?.variants?.[0])
 const variantId = computed(() => variant.value?.id)
 
 const displayPrice = computed(() => {
-  const price = resolveVariantPrice(variant.value)
+  const price = getFinalPrice(variant.value)
   if (!price) {
     return 'Price unavailable'
   }

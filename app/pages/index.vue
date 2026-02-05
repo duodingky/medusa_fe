@@ -49,9 +49,11 @@
         <h2>Products</h2>
         <span class="muted">{{ products.length }} available</span>
       </div>
+    
       <p v-if="productsError" class="status status-error">
         {{ productsError.message }}
       </p>
+     
       <div v-else class="card-grid">
         <ProductCard v-for="product in products" :key="product.id" :product="product" />
       </div>
@@ -85,7 +87,7 @@ const {
   pending: productsPending,
   error: productsError
 } = await useAsyncData('medusa-products', () =>
-  request<{ products?: any[] }>('/store/products', { query: { limit: 12 } })
+  request<{ products?: any[] }>('/store/products?region_id=reg_01KGJ9DRARQ5H6EDQDQETN8SN5', { query: { limit: 12 } })
 )
 
 const categories = computed(() => {
