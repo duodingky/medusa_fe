@@ -92,8 +92,8 @@ export const useCustomer = () => {
   }
 
   const { request } = useMedusa()
-  const authLoginPaths = ['/store/auth', '/auth/customer/emailpass']
-  const authLogoutPaths = ['/store/auth', '/auth/customer/session']
+  const authLoginPaths = [ '/auth/customer/emailpass']
+  const authLogoutPaths = [ '/auth/customer/session']
 
   const requestWithFallback = async <T>(paths: string[], options: FetchOptions) => {
     const uniquePaths = paths.filter((path, index, arr) => arr.indexOf(path) === index)
