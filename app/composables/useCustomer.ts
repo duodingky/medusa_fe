@@ -57,14 +57,23 @@ export const useCustomer = () => {
 
   const config = useRuntimeConfig()
   const publishableKey = config.public.medusaPublishableKey || ''
-  const authHeaders = publishableKey ? { 'x-publishable-api-key': publishableKey } : undefined
+  const buildHeaders = (withJson = false) => {
+    const headers: Record<string, string> = {}
+    if (publishableKey) {
+      headers['x-publishable-api-key'] = publishableKey
+    }
+    if (withJson) {
+      headers['Content-Type'] = 'application/json'
+    }
+    return Object.keys(headers).length ? headers : undefined
+  }
 
   const { request } = useMedusa()
 
   const loadCustomer = async () => {
     const data = await request<{ customer?: Customer }>('/store/customers/me', {
       credentials: 'include',
-      headers: authHeaders
+      headers: buildHeaders()
     })
     customer.value = data.customer ?? null
     return customer.value
@@ -80,7 +89,7 @@ export const useCustomer = () => {
         method: 'POST',
         body: { email, password },
         credentials: 'include',
-        headers: authHeaders
+        headers: buildHeaders(true)
       })
       return loadCustomer()
     })
@@ -92,7 +101,7 @@ export const useCustomer = () => {
         method: 'POST',
         body: payload,
         credentials: 'include',
-        headers: authHeaders
+        headers: buildHeaders(true)
       })
       return data.customer ?? null
     })
@@ -103,7 +112,7 @@ export const useCustomer = () => {
       await request('/store/auth', {
         method: 'DELETE',
         credentials: 'include',
-        headers: authHeaders
+        headers: buildHeaders(true)
       })
       customer.value = null
       return true
