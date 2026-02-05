@@ -55,11 +55,16 @@ export const useCustomer = () => {
   const isLoading = useState<boolean>('medusa_customer_loading', () => false)
   const error = useState<string | null>('medusa_customer_error', () => null)
 
+  const config = useRuntimeConfig()
+  const publishableKey = config.public.medusaPublishableKey || ''
+  const authHeaders = publishableKey ? { 'x-publishable-api-key': publishableKey } : undefined
+
   const { request } = useMedusa()
 
   const loadCustomer = async () => {
     const data = await request<{ customer?: Customer }>('/store/customers/me', {
-      credentials: 'include'
+      credentials: 'include',
+      headers: authHeaders
     })
     customer.value = data.customer ?? null
     return customer.value
@@ -74,7 +79,8 @@ export const useCustomer = () => {
       await request('/store/auth', {
         method: 'POST',
         body: { email, password },
-        credentials: 'include'
+        credentials: 'include',
+        headers: authHeaders
       })
       return loadCustomer()
     })
@@ -85,7 +91,8 @@ export const useCustomer = () => {
       const data = await request<{ customer?: Customer }>('/store/customers', {
         method: 'POST',
         body: payload,
-        credentials: 'include'
+        credentials: 'include',
+        headers: authHeaders
       })
       return data.customer ?? null
     })
@@ -95,7 +102,8 @@ export const useCustomer = () => {
     return runAction(isLoading, error, async () => {
       await request('/store/auth', {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
+        headers: authHeaders
       })
       customer.value = null
       return true
