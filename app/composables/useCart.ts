@@ -149,6 +149,13 @@ export const useCart = () => {
     })
   }
 
+  const clearCart = () => {
+    cart.value = null
+    cartId.value = null
+    error.value = null
+    isLoading.value = false
+  }
+
   return {
     cart,
     error,
@@ -157,6 +164,7 @@ export const useCart = () => {
     updateItem,
     removeItem,
     ensureCart,
-    refreshCart
+    refreshCart,
+    clearCart
   }
 }

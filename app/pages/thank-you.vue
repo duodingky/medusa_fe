@@ -89,10 +89,12 @@ import { formatPrice, resolveLineItemPrice } from '~/utils/pricing'
 
 const route = useRoute()
 const { request } = useMedusa()
+const { clearCart } = useCart()
 
 const order = ref<any>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+const hasClearedCart = ref(false)
 
 const orderId = computed(() => {
   const value = route.query.order_id
@@ -127,6 +129,10 @@ const loadOrder = async () => {
   try {
     const data = await request<{ order?: any }>(`/store/orders/${orderId.value}`)
     order.value = data.order || data
+    if (!hasClearedCart.value) {
+      clearCart()
+      hasClearedCart.value = true
+    }
   } catch (err) {
     error.value = resolveErrorMessage(err)
   } finally {
