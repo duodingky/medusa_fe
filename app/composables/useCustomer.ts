@@ -1,5 +1,7 @@
 import type { Ref } from 'vue'
 
+type FetchOptions = Parameters<typeof $fetch>[1]
+
 type Customer = {
   id: string
   email: string
@@ -30,6 +32,18 @@ const resolveErrorMessage = (error: unknown) => {
     }
   }
   return 'Customer request failed.'
+}
+
+const resolveStatusCode = (error: unknown) => {
+  if (!error || typeof error !== 'object') {
+    return null
+  }
+  const maybeError = error as {
+    status?: number
+    statusCode?: number
+    response?: { status?: number }
+  }
+  return maybeError.status ?? maybeError.statusCode ?? maybeError.response?.status ?? null
 }
 
 const runAction = async <T>(
@@ -69,6 +83,27 @@ export const useCustomer = () => {
   }
 
   const { request } = useMedusa()
+  const authLoginPaths = ['/store/auth', '/auth/customer/emailpass']
+  const authLogoutPaths = ['/store/auth', '/auth/customer/session']
+
+  const requestWithFallback = async <T>(paths: string[], options: FetchOptions) => {
+    const uniquePaths = paths.filter((path, index, arr) => arr.indexOf(path) === index)
+    let lastError: unknown = null
+
+    for (const path of uniquePaths) {
+      try {
+        return await request<T>(path, options)
+      } catch (error) {
+        lastError = error
+        if (resolveStatusCode(error) === 404) {
+          continue
+        }
+        throw error
+      }
+    }
+
+    throw lastError || new Error('Customer request failed.')
+  }
 
   const loadCustomer = async () => {
     const data = await request<{ customer?: Customer }>('/store/customers/me', {
@@ -85,7 +120,7 @@ export const useCustomer = () => {
 
   const login = async (email: string, password: string) => {
     return runAction(isLoading, error, async () => {
-      await request('/store/auth', {
+      await requestWithFallback(authLoginPaths, {
         method: 'POST',
         body: { email, password },
         credentials: 'include',
@@ -109,7 +144,7 @@ export const useCustomer = () => {
 
   const logout = async () => {
     return runAction(isLoading, error, async () => {
-      await request('/store/auth', {
+      await requestWithFallback(authLogoutPaths, {
         method: 'DELETE',
         credentials: 'include',
         headers: buildHeaders(true)
