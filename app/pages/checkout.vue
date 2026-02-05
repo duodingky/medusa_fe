@@ -322,6 +322,7 @@ const discountTotal = computed(() => formatPrice(cart.value?.discount_total ?? 0
 const total = computed(() => formatPrice(cart.value?.total ?? 0, currency.value))
 const hasDiscount = computed(() => (cart.value?.discount_total ?? 0) > 0)
 const hasPaymentProviders = computed(() => paymentProviders.value.length > 0)
+const activePaymentSession = computed(() => resolvePaymentSession(cart.value))
 const manualProviderId = computed(() => {
   const manualMatch = paymentProviders.value.find(provider =>
     provider.toLowerCase().includes('manual')
@@ -332,7 +333,7 @@ const hasEmailOnCart = computed(() => Boolean(cart.value?.email))
 const hasShippingAddress = computed(() => addressHasRequiredFields(cart.value?.shipping_address))
 const hasBillingAddress = computed(() => addressHasRequiredFields(cart.value?.billing_address))
 const hasShippingMethod = computed(() => (cart.value?.shipping_methods?.length ?? 0) > 0)
-const hasPaymentSession = computed(() => Boolean(cart.value?.payment_session?.provider_id))
+const hasPaymentSession = computed(() => Boolean(activePaymentSession.value?.provider_id))
 const canPlaceOrder = computed(() => {
   return (
     !cartEmpty.value &&
@@ -379,8 +380,9 @@ watch(
       selectedShippingOptionId.value =
         existingShipping.shipping_option_id || existingShipping.shipping_option?.id
     }
-    if (value.payment_session?.provider_id) {
-      selectedPaymentProvider.value = value.payment_session.provider_id
+    const paymentSession = resolvePaymentSession(value)
+    if (paymentSession?.provider_id) {
+      selectedPaymentProvider.value = paymentSession.provider_id
     }
   },
   { immediate: true }
@@ -552,6 +554,7 @@ const setManualPayment = async () => {
       }
     })
     await refreshCart()
+    selectedPaymentProvider.value = providerId
     paymentSuccess.value = 'Manual payment selected.'
   } catch (error) {
     paymentError.value = resolveErrorMessage(error)
@@ -640,6 +643,20 @@ function normalizeAddress(address: AddressForm) {
   })
 
   return payload
+}
+
+function resolvePaymentSession(cartValue: any) {
+  if (!cartValue) {
+    return null
+  }
+  if (cartValue.payment_session) {
+    return cartValue.payment_session
+  }
+  const sessions = cartValue.payment_sessions || cartValue.payment_collection?.payment_sessions
+  if (Array.isArray(sessions) && sessions.length) {
+    return sessions.find((session: any) => session.is_selected) || sessions[0]
+  }
+  return null
 }
 
 function addressHasRequiredFields(address: Record<string, any> | null | undefined) {
