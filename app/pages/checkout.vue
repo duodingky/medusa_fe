@@ -196,6 +196,24 @@
         <p v-if="paymentError" class="status status-error">{{ paymentError }}</p>
         <p v-if="paymentSuccess" class="status status-success">{{ paymentSuccess }}</p>
       </section>
+
+      <section class="card checkout-section">
+        <div class="section-header">
+          <h2 class="card-title">Place order</h2>
+          <span class="muted">Step 4</span>
+        </div>
+        <p class="muted">Complete each step to enable placing your order.</p>
+        <ul class="summary-list">
+          <li v-for="item in orderChecklist" :key="item.label" class="summary-item">
+            <span>{{ item.label }}</span>
+            <span>{{ item.done ? 'Ready' : 'Required' }}</span>
+          </li>
+        </ul>
+        <button class="button" :disabled="placeOrderLoading || !canPlaceOrder" @click="placeOrder">
+          Place order
+        </button>
+        <p v-if="placeOrderError" class="status status-error">{{ placeOrderError }}</p>
+      </section>
     </div>
 
     <aside class="checkout-summary">
@@ -282,10 +300,12 @@ const addressLoading = ref(false)
 const shippingOptionsLoading = ref(false)
 const shippingMethodLoading = ref(false)
 const paymentLoading = ref(false)
+const placeOrderLoading = ref(false)
 
 const addressError = ref<string | null>(null)
 const shippingError = ref<string | null>(null)
 const paymentError = ref<string | null>(null)
+const placeOrderError = ref<string | null>(null)
 
 const addressSuccess = ref<string | null>(null)
 const shippingSuccess = ref<string | null>(null)
@@ -308,6 +328,27 @@ const manualProviderId = computed(() => {
   )
   return manualMatch || paymentProviders.value[0] || 'manual'
 })
+const hasEmailOnCart = computed(() => Boolean(cart.value?.email))
+const hasShippingAddress = computed(() => addressHasRequiredFields(cart.value?.shipping_address))
+const hasBillingAddress = computed(() => addressHasRequiredFields(cart.value?.billing_address))
+const hasShippingMethod = computed(() => (cart.value?.shipping_methods?.length ?? 0) > 0)
+const hasPaymentSession = computed(() => Boolean(cart.value?.payment_session?.provider_id))
+const canPlaceOrder = computed(() => {
+  return (
+    !cartEmpty.value &&
+    hasEmailOnCart.value &&
+    hasShippingAddress.value &&
+    hasBillingAddress.value &&
+    hasShippingMethod.value &&
+    hasPaymentSession.value
+  )
+})
+const orderChecklist = computed(() => [
+  { label: 'Email address', done: hasEmailOnCart.value },
+  { label: 'Shipping & billing addresses', done: hasShippingAddress.value && hasBillingAddress.value },
+  { label: 'Shipping method', done: hasShippingMethod.value },
+  { label: 'Payment method', done: hasPaymentSession.value }
+])
 
 const hasPrefilled = ref(false)
 
@@ -519,6 +560,40 @@ const setManualPayment = async () => {
   }
 }
 
+const placeOrder = async () => {
+  placeOrderError.value = null
+
+  if (!cart.value?.id) {
+    placeOrderError.value = 'Cart is not ready yet.'
+    return
+  }
+
+  if (!canPlaceOrder.value) {
+    placeOrderError.value = 'Complete all required checkout steps before placing the order.'
+    return
+  }
+
+  placeOrderLoading.value = true
+  try {
+    const data = await request<{
+      type?: string
+      data?: { id?: string }
+      order?: { id?: string }
+    }>(`/store/carts/${cart.value.id}/complete`, {
+      method: 'POST'
+    })
+    const orderId = data.order?.id || data.data?.id
+    if (!orderId) {
+      throw new Error('Order could not be created.')
+    }
+    await navigateTo(`/thank-you?order_id=${orderId}`)
+  } catch (error) {
+    placeOrderError.value = resolveErrorMessage(error)
+  } finally {
+    placeOrderLoading.value = false
+  }
+}
+
 onMounted(async () => {
   await ensureCart()
   await loadPaymentProviders()
@@ -565,6 +640,15 @@ function normalizeAddress(address: AddressForm) {
   })
 
   return payload
+}
+
+function addressHasRequiredFields(address: Record<string, any> | null | undefined) {
+  if (!address) {
+    return false
+  }
+
+  const requiredFields = ['first_name', 'last_name', 'address_1', 'city', 'postal_code', 'country_code']
+  return requiredFields.every(field => String(address[field] || '').trim())
 }
 
 function validateAddress(address: AddressForm) {
