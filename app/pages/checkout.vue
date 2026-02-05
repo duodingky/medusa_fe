@@ -510,12 +510,6 @@ const setManualPayment = async () => {
         provider_id: providerId
       }
     })
-    await request(`/store/carts/${cart.value.id}/payment-session`, {
-      method: 'POST',
-      body: {
-        provider_id: providerId
-      }
-    })
     await refreshCart()
     paymentSuccess.value = 'Manual payment selected.'
   } catch (error) {
