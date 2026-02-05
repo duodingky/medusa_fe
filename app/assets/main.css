@@ -162,6 +162,24 @@ img {
   gap: 12px;
 }
 
+.product-image {
+  width: 100%;
+  border-radius: 10px;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #f3f4f6;
+}
+
+.product-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 12px;
+}
+
 .account-summary {
   display: flex;
   justify-content: space-between;
