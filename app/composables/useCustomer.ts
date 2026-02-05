@@ -18,6 +18,11 @@ type RegisterPayload = {
   phone?: string | null
 }
 
+type LoginResponse = {
+  customer?: Customer
+  token?: string
+}
+
 const resolveErrorMessage = (error: unknown) => {
   if (typeof error === 'string') {
     return error
@@ -68,6 +73,7 @@ export const useCustomer = () => {
   const customer = useState<Customer | null>('medusa_customer', () => null)
   const isLoading = useState<boolean>('medusa_customer_loading', () => false)
   const error = useState<string | null>('medusa_customer_error', () => null)
+  const authToken = useCookie<string | null>('medusa_customer_token', { sameSite: 'lax' })
 
   const config = useRuntimeConfig()
   const publishableKey = config.public.medusaPublishableKey || ''
@@ -75,6 +81,9 @@ export const useCustomer = () => {
     const headers: Record<string, string> = {}
     if (publishableKey) {
       headers['x-publishable-api-key'] = publishableKey
+    }
+    if (authToken.value) {
+      headers.Authorization = `Bearer ${authToken.value}`
     }
     if (withJson) {
       headers['Content-Type'] = 'application/json'
@@ -106,12 +115,22 @@ export const useCustomer = () => {
   }
 
   const loadCustomer = async () => {
-    const data = await request<{ customer?: Customer }>('/store/customers/me', {
-      credentials: 'include',
-      headers: buildHeaders()
-    })
-    customer.value = data.customer ?? null
-    return customer.value
+    try {
+      const data = await request<{ customer?: Customer }>('/store/customers/me', {
+        credentials: 'include',
+        headers: buildHeaders()
+      })
+      customer.value = data.customer ?? null
+      return customer.value
+    } catch (error) {
+      const statusCode = resolveStatusCode(error)
+      if (statusCode === 401 || statusCode === 403) {
+        customer.value = null
+        authToken.value = null
+        return null
+      }
+      throw error
+    }
   }
 
   const fetchCustomer = async () => {
@@ -120,12 +139,19 @@ export const useCustomer = () => {
 
   const login = async (email: string, password: string) => {
     return runAction(isLoading, error, async () => {
-      await requestWithFallback(authLoginPaths, {
+      const data = await requestWithFallback<LoginResponse>(authLoginPaths, {
         method: 'POST',
         body: { email, password },
         credentials: 'include',
         headers: buildHeaders(true)
       })
+      if (data?.token) {
+        authToken.value = data.token
+      }
+      if (data?.customer) {
+        customer.value = data.customer
+        return customer.value
+      }
       return loadCustomer()
     })
   }
@@ -144,12 +170,16 @@ export const useCustomer = () => {
 
   const logout = async () => {
     return runAction(isLoading, error, async () => {
-      await requestWithFallback(authLogoutPaths, {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: buildHeaders(true)
-      })
-      customer.value = null
+      try {
+        await requestWithFallback(authLogoutPaths, {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: buildHeaders(true)
+        })
+      } finally {
+        customer.value = null
+        authToken.value = null
+      }
       return true
     })
   }
