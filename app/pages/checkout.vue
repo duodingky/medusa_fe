@@ -171,8 +171,13 @@
           Manual payment lets you capture payment offline (e.g. cash on delivery).
         </p>
 
-        <label class="option-card" :class="{ active: selectedPaymentProvider === 'manual' }">
-          <input v-model="selectedPaymentProvider" type="radio" value="manual" />
+        <label class="option-card" :class="{ active: selectedPaymentProvider === manualProviderId }">
+          <input
+            v-model="selectedPaymentProvider"
+            type="radio"
+            :value="manualProviderId"
+            :disabled="!hasPaymentProviders"
+          />
           <div>
             <div class="option-title">Manual payment</div>
             <div class="muted">No gateway required. Payment will be recorded manually.</div>
@@ -181,7 +186,9 @@
 
         <button
           class="button"
-          :disabled="paymentLoading || selectedPaymentProvider !== 'manual' || cartEmpty"
+          :disabled="
+            paymentLoading || selectedPaymentProvider !== manualProviderId || cartEmpty || !hasPaymentProviders
+          "
           @click="setManualPayment"
         >
           Select manual payment
@@ -252,15 +259,10 @@ type ShippingOption = {
   description?: string | null
 }
 
-type PaymentProvider = {
-  id: string
-  name?: string
-}
-
 type RegionSummary = {
   id: string
   name?: string
-  payment_providers?: PaymentProvider[]
+  payment_providers?: string[]
 }
 
 const { cart, ensureCart, refreshCart } = useCart()
@@ -274,7 +276,7 @@ const billingSameAsShipping = ref(true)
 const shippingOptions = ref<ShippingOption[]>([])
 const selectedShippingOptionId = ref<string | null>(null)
 const selectedPaymentProvider = ref<string | null>(null)
-const paymentProviders = ref<PaymentProvider[]>([])
+const paymentProviders = ref<string[]>([])
 
 const addressLoading = ref(false)
 const shippingOptionsLoading = ref(false)
@@ -299,6 +301,13 @@ const taxTotal = computed(() => formatPrice(cart.value?.tax_total ?? 0, currency
 const discountTotal = computed(() => formatPrice(cart.value?.discount_total ?? 0, currency.value))
 const total = computed(() => formatPrice(cart.value?.total ?? 0, currency.value))
 const hasDiscount = computed(() => (cart.value?.discount_total ?? 0) > 0)
+const hasPaymentProviders = computed(() => paymentProviders.value.length > 0)
+const manualProviderId = computed(() => {
+  const manualMatch = paymentProviders.value.find(provider =>
+    provider.toLowerCase().includes('manual')
+  )
+  return manualMatch || paymentProviders.value[0] || 'manual'
+})
 
 const hasPrefilled = ref(false)
 
@@ -377,20 +386,22 @@ const loadPaymentProviders = async () => {
       query: { fields: 'id,name,payment_providers' }
     })
     paymentProviders.value = data.regions?.[0]?.payment_providers || []
+    if (!selectedPaymentProvider.value && paymentProviders.value.length) {
+      selectedPaymentProvider.value = manualProviderId.value
+    }
   } catch (error) {
     paymentProviders.value = []
   }
 }
 
 const resolveManualProviderId = () => {
-  const manual = paymentProviders.value.find(provider => provider.id === 'manual')
-  if (manual?.id) {
-    return manual.id
+  if (!hasPaymentProviders.value) {
+    return null
   }
   if (selectedPaymentProvider.value) {
     return selectedPaymentProvider.value
   }
-  return paymentProviders.value[0]?.id || 'manual'
+  return manualProviderId.value
 }
 
 const saveAddresses = async () => {
@@ -482,7 +493,14 @@ const setManualPayment = async () => {
     return
   }
 
+  if (!hasPaymentProviders.value) {
+    await loadPaymentProviders()
+  }
   const providerId = resolveManualProviderId()
+  if (!providerId) {
+    paymentError.value = 'No payment providers available for this region.'
+    return
+  }
 
   paymentLoading.value = true
   try {
