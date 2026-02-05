@@ -252,6 +252,17 @@ type ShippingOption = {
   description?: string | null
 }
 
+type PaymentProvider = {
+  id: string
+  name?: string
+}
+
+type RegionSummary = {
+  id: string
+  name?: string
+  payment_providers?: PaymentProvider[]
+}
+
 const { cart, ensureCart, refreshCart } = useCart()
 const { request } = useMedusa()
 
@@ -263,6 +274,7 @@ const billingSameAsShipping = ref(true)
 const shippingOptions = ref<ShippingOption[]>([])
 const selectedShippingOptionId = ref<string | null>(null)
 const selectedPaymentProvider = ref<string | null>(null)
+const paymentProviders = ref<PaymentProvider[]>([])
 
 const addressLoading = ref(false)
 const shippingOptionsLoading = ref(false)
@@ -359,6 +371,28 @@ const fetchShippingOptions = async () => {
   }
 }
 
+const loadPaymentProviders = async () => {
+  try {
+    const data = await request<{ regions?: RegionSummary[] }>('/store/regions', {
+      query: { fields: 'id,name,payment_providers' }
+    })
+    paymentProviders.value = data.regions?.[0]?.payment_providers || []
+  } catch (error) {
+    paymentProviders.value = []
+  }
+}
+
+const resolveManualProviderId = () => {
+  const manual = paymentProviders.value.find(provider => provider.id === 'manual')
+  if (manual?.id) {
+    return manual.id
+  }
+  if (selectedPaymentProvider.value) {
+    return selectedPaymentProvider.value
+  }
+  return paymentProviders.value[0]?.id || 'manual'
+}
+
 const saveAddresses = async () => {
   addressError.value = null
   addressSuccess.value = null
@@ -448,15 +482,20 @@ const setManualPayment = async () => {
     return
   }
 
+  const providerId = resolveManualProviderId()
+
   paymentLoading.value = true
   try {
     await request(`/store/carts/${cart.value.id}/payment-sessions`, {
-      method: 'POST'
+      method: 'POST',
+      body: {
+        provider_id: providerId
+      }
     })
     await request(`/store/carts/${cart.value.id}/payment-session`, {
       method: 'POST',
       body: {
-        provider_id: 'manual'
+        provider_id: providerId
       }
     })
     await refreshCart()
@@ -470,6 +509,7 @@ const setManualPayment = async () => {
 
 onMounted(async () => {
   await ensureCart()
+  await loadPaymentProviders()
   await fetchShippingOptions()
 })
 
