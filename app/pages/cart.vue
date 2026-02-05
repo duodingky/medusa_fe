@@ -48,8 +48,13 @@
       </ul>
 
       <div v-if="items.length" class="cart-summary">
-        <span>Total items: {{ totalQuantity }}</span>
-        <span><strong>{{ totalPrice }}</strong></span>
+        <div class="cart-summary-meta">
+          <span>Total items: {{ totalQuantity }}</span>
+          <span><strong>{{ totalPrice }}</strong></span>
+        </div>
+        <div class="cart-summary-actions">
+          <NuxtLink to="/checkout" class="button">Proceed to checkout</NuxtLink>
+        </div>
       </div>
     </section>
   </div>

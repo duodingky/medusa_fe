@@ -7,6 +7,7 @@
       <nav class="header-links">
         <NuxtLink to="/">Home</NuxtLink>
         <NuxtLink to="/account">{{ accountLabel }}</NuxtLink>
+        <NuxtLink to="/checkout">Checkout</NuxtLink>
         <NuxtLink to="/cart">Cart ({{ cartCount }})</NuxtLink>
       </nav>
     </header>
