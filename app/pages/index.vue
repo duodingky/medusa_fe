@@ -4,12 +4,8 @@
       <div class="section-header">
         <div>
           <h1>Storefront overview</h1>
-          <p class="muted">
-            Connected to Medusa at {{ config.public.medusaBaseUrl }}
-          </p>
         </div>
       </div>
-      <CartSummary />
     </section>
 
     <section class="section">
