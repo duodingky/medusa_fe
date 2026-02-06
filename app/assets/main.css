@@ -260,7 +260,21 @@ img {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-top: 16px;
+}
+
+.cart-summary-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cart-summary-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
 }
 
 .input {
@@ -318,12 +332,126 @@ img {
   color: #166534;
 }
 
+.checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.checkout-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.checkout-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.address-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.option-card {
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.option-card input {
+  margin: 0;
+}
+
+.option-card.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.option-title {
+  font-weight: 600;
+}
+
+.option-price {
+  margin-left: auto;
+  font-weight: 600;
+}
+
+.checkout-summary {
+  position: sticky;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.summary-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.95rem;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.summary-row.total {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 12px;
+  padding-top: 12px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
 @media (max-width: 900px) {
   .catalog-layout {
     grid-template-columns: 1fr;
   }
 
   .catalog-sidebar {
+    position: static;
+  }
+
+  .checkout-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .checkout-summary {
     position: static;
   }
 }
